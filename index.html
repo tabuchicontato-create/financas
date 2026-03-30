@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
@@ -167,6 +167,7 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
       <div><div class="t-title">FinançasApp</div><div class="t-sub" id="topSub">2025</div></div>
     </div>
     <div class="topbar-right">
+      <span style="font-size:12px;color:var(--txt3);margin-right:4px">Olá, <span id="userLabel" style="color:var(--txt2);font-weight:500"></span></span>
       <button class="btn-ghost" onclick="setView('annual')">Visão Anual</button>
       <button class="btn-ghost" onclick="logout()">Sair</button>
     </div>
@@ -237,7 +238,11 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
 // ──────────────────────────────────────────────
 //  CONSTANTS
 // ──────────────────────────────────────────────
-const CRED = {u:'adm', p:'030921'};
+const USERS = [
+  {u:'adm',  p:'030921', nome:'Administrador'},
+  {u:'lavy', p:'030921', nome:'Lavy'},
+  {u:'will', p:'030921', nome:'Will'},
+];
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const YEARS = [2025, 2026];
 const CAT_COLORS = {
@@ -336,12 +341,17 @@ function getNextId(data){ return data.length ? Math.max(...data.map(d=>d.id))+1 
 // ──────────────────────────────────────────────
 //  AUTH
 // ──────────────────────────────────────────────
+let currentUser = null;
+
 function login(){
-  const u=document.getElementById('u').value.trim();
+  const u=document.getElementById('u').value.trim().toLowerCase();
   const p=document.getElementById('p').value.trim();
-  if(u===CRED.u && p===CRED.p){
+  const found=USERS.find(x=>x.u.toLowerCase()===u && x.p===p);
+  if(found){
+    currentUser=found;
     document.getElementById('loginWrap').style.display='none';
     document.getElementById('app').classList.add('active');
+    document.getElementById('userLabel').textContent=found.nome;
     buildNav(); setMonth(2025,11);
   } else {
     document.getElementById('err').textContent='Usuário ou senha incorretos.';
@@ -349,6 +359,7 @@ function login(){
 }
 document.getElementById('p').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
 function logout(){
+  currentUser=null;
   document.getElementById('loginWrap').style.display='flex';
   document.getElementById('app').classList.remove('active');
   document.getElementById('u').value='';
