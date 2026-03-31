@@ -6,6 +6,49 @@
 <title>FinançasApp</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDshvH85-GgZ328YOUvxMFG9eG_fgUqe0o",
+  authDomain: "financas-app-c1b01.firebaseapp.com",
+  projectId: "financas-app-c1b01",
+  storageBucket: "financas-app-c1b01.firebasestorage.app",
+  messagingSenderId: "497246091810",
+  appId: "1:497246091810:web:7f40397e2f75a8538ca87b"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window._fbLoadData = async function(y, m) {
+  try {
+    const ref = doc(db, 'financas', `${y}_${m}`);
+    const snap = await getDoc(ref);
+    if (snap.exists()) return snap.data().transactions || [];
+    // seed default
+    if (y===2025 && m===11) return JSON.parse(JSON.stringify(window._SEED));
+    if (y===2026 && m===0)  return JSON.parse(JSON.stringify(window._SEED_JAN));
+    return [];
+  } catch(e) {
+    console.error('Erro ao carregar:', e);
+    return [];
+  }
+};
+
+window._fbSaveData = async function(y, m, data) {
+  try {
+    const ref = doc(db, 'financas', `${y}_${m}`);
+    await setDoc(ref, { transactions: data });
+  } catch(e) {
+    console.error('Erro ao salvar:', e);
+  }
+};
+
+window._firebaseReady = true;
+document.dispatchEvent(new Event('firebaseReady'));
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -223,6 +266,7 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
           <option>Presentes/Família</option>
           <option>Educação</option>
           <option>Trabalho/Renda</option>
+          <option>Cartão</option>
           <option>Outros</option>
         </select>
       </div>
@@ -248,7 +292,8 @@ const YEARS = [2025, 2026];
 const CAT_COLORS = {
   'Alimentação':'#34d399','Transporte':'#60a5fa','Lazer':'#a78bfa',
   'Pet':'#fb923c','Saúde/Beleza':'#f472b6','Casa':'#facc15',
-  'Presentes/Família':'#e879f9','Educação':'#38bdf8','Trabalho/Renda':'#86efac','Outros':'#94a3b8'
+  'Presentes/Família':'#e879f9','Educação':'#38bdf8','Trabalho/Renda':'#86efac',
+  'Cartão':'#f97316','Outros':'#94a3b8'
 };
 
 // ──────────────────────────────────────────────
@@ -314,36 +359,63 @@ const SEED_JAN = [
   {id:103,data:'2026-01-02',desc:'Pneus',tipo:'Despesa',cat:'Transporte',valor:530},
 ];
 
+// Dados migrados do localStorage
+const MIGRATED = {
+  '2026_2': [{"id":1,"desc":"Sobrou","valor":260,"tipo":"Despesa","cat":"Outros","data":"2026-03-30"}],
+  '2026_3': [{"id":1,"desc":"Free","valor":100,"tipo":"Receita","cat":"Trabalho/Renda","data":"2026-04-02"},{"id":2,"desc":"Free","valor":100,"tipo":"Receita","cat":"Trabalho/Renda","data":"2026-04-03"},{"id":4,"desc":"Free","valor":220,"tipo":"Receita","cat":"Trabalho/Renda","data":"2026-04-04"},{"id":5,"desc":"Free","valor":220,"tipo":"Receita","cat":"Trabalho/Renda","data":"2026-04-05"},{"id":6,"desc":"Free","valor":100,"tipo":"Receita","cat":"Trabalho/Renda","data":"2026-04-10"},{"id":7,"desc":"Free","valor":220,"tipo":"Receita","cat":"Trabalho/Renda","data":"2026-04-11"},{"id":8,"desc":"Free","valor":220,"tipo":"Receita","cat":"Trabalho/Renda","data":"2026-04-12"},{"id":9,"desc":"Free","valor":100,"tipo":"Receita","cat":"Trabalho/Renda","data":"2026-04-17"},{"id":10,"desc":"Free","valor":220,"tipo":"Receita","cat":"Trabalho/Renda","data":"2026-04-18"},{"id":11,"desc":"Free","valor":100,"tipo":"Receita","cat":"Trabalho/Renda","data":"2026-04-24"},{"id":12,"desc":"Free","valor":220,"tipo":"Receita","cat":"Trabalho/Renda","data":"2026-04-25"},{"id":13,"desc":"Free","valor":220,"tipo":"Receita","cat":"Trabalho/Renda","data":"2026-04-26"},{"id":14,"desc":"Ba","valor":1250,"tipo":"Receita","cat":"Educação","data":"2026-04-03"},{"id":15,"desc":"Kiyoshi","valor":500,"tipo":"Receita","cat":"Outros","data":"2026-04-07"},{"id":16,"desc":"COPEL","valor":130,"tipo":"Despesa","cat":"Casa","data":"2026-04-15"},{"id":17,"desc":"FIES","valor":220,"tipo":"Despesa","cat":"Educação","data":"2026-04-15"},{"id":18,"desc":"ALUGUEL","valor":560,"tipo":"Despesa","cat":"Casa","data":"2026-04-01"},{"id":19,"desc":"CARTÃO","valor":200,"tipo":"Despesa","cat":"Cartão","data":"2026-04-19"},{"id":20,"desc":"MERCADO","valor":150,"tipo":"Despesa","cat":"Alimentação","data":"2026-04-04"},{"id":21,"desc":"MERCADO","valor":150,"tipo":"Despesa","cat":"Alimentação","data":"2026-04-12"},{"id":22,"desc":"MERCADO","valor":150,"tipo":"Despesa","cat":"Alimentação","data":"2026-04-19"},{"id":23,"desc":"MERCADO","valor":150,"tipo":"Despesa","cat":"Alimentação","data":"2026-04-26"},{"id":24,"desc":"Academia","valor":110,"tipo":"Despesa","cat":"Saúde/Beleza","data":"2026-04-09"},{"id":25,"desc":"SANEPAR","valor":150,"tipo":"Despesa","cat":"Casa","data":"2026-04-20"}]
+};
+
 // ──────────────────────────────────────────────
 //  STATE & STORAGE
 // ──────────────────────────────────────────────
-let state = {view:'month', year:2025, month:11}; // month 0-indexed
+window._SEED = SEED;
+window._SEED_JAN = SEED_JAN;
+let state = {view:'month', year:2025, month:11};
 let editId = null;
 let chartBar = null, chartLine = null, chartAnnual = null;
+const cache = {};
 
-function storageKey(y,m){return `fin_${y}_${m}`}
-
-function loadData(y,m){
-  const raw = localStorage.getItem(storageKey(y,m));
-  if(raw) return JSON.parse(raw);
-  // seed default data
-  if(y===2025 && m===11) return JSON.parse(JSON.stringify(SEED));
-  if(y===2026 && m===0)  return JSON.parse(JSON.stringify(SEED_JAN));
-  return [];
+async function loadData(y,m){
+  const key=`${y}_${m}`;
+  if(cache[key]) return cache[key];
+  let data;
+  if(window._fbLoadData){
+    data = await window._fbLoadData(y,m);
+    // Se Firebase não tem dados mas temos dados migrados, usa eles e salva no Firebase
+    if((!data || data.length===0) && MIGRATED[key]){
+      data = JSON.parse(JSON.stringify(MIGRATED[key]));
+      await window._fbSaveData(y,m,data);
+    }
+  } else {
+    if(MIGRATED[key]) data=JSON.parse(JSON.stringify(MIGRATED[key]));
+    else if(y===2025 && m===11) data=JSON.parse(JSON.stringify(SEED));
+    else if(y===2026 && m===0) data=JSON.parse(JSON.stringify(SEED_JAN));
+    else data=[];
+  }
+  cache[key]=data;
+  return data;
 }
 
-function saveData(y,m,data){
-  localStorage.setItem(storageKey(y,m), JSON.stringify(data));
+async function saveData(y,m,data){
+  const key=`${y}_${m}`;
+  cache[key]=data;
+  if(window._fbSaveData) await window._fbSaveData(y,m,data);
 }
 
 function getNextId(data){ return data.length ? Math.max(...data.map(d=>d.id))+1 : 1; }
+
+function showLoading(msg='Carregando...'){
+  const c=document.getElementById('content');
+  if(c) c.innerHTML=`<div style="text-align:center;padding:4rem 1rem;color:var(--txt3)"><div style="font-size:28px;margin-bottom:.75rem">⏳</div><div>${msg}</div></div>`;
+}
+
 
 // ──────────────────────────────────────────────
 //  AUTH
 // ──────────────────────────────────────────────
 let currentUser = null;
 
-function login(){
+async function login(){
   const u=document.getElementById('u').value.trim().toLowerCase();
   const p=document.getElementById('p').value.trim();
   const found=USERS.find(x=>x.u.toLowerCase()===u && x.p===p);
@@ -352,7 +424,8 @@ function login(){
     document.getElementById('loginWrap').style.display='none';
     document.getElementById('app').classList.add('active');
     document.getElementById('userLabel').textContent=found.nome;
-    buildNav(); setMonth(2025,11);
+    showLoading('Carregando dados...');
+    await buildNav(); await setMonth(2025,11);
   } else {
     document.getElementById('err').textContent='Usuário ou senha incorretos.';
   }
@@ -370,20 +443,20 @@ function logout(){
 // ──────────────────────────────────────────────
 //  NAV
 // ──────────────────────────────────────────────
-function buildNav(){
-  [2025,2026].forEach(y=>{
+async function buildNav(){
+  for(const y of [2025,2026]){
     const el=document.getElementById(`monthNav${y}`);
     el.innerHTML='';
-    MONTHS.forEach((m,i)=>{
-      const d=loadData(y,i);
+    for(let i=0;i<12;i++){
+      const d=await loadData(y,i);
       const btn=document.createElement('button');
       btn.className='month-btn'+(d.length?' has-data':'');
       btn.id=`nav_${y}_${i}`;
-      btn.innerHTML=`${m}<span class="month-dot"></span>`;
+      btn.innerHTML=`${MONTHS[i]}<span class="month-dot"></span>`;
       btn.onclick=()=>setMonth(y,i);
       el.appendChild(btn);
-    });
-  });
+    }
+  }
 }
 
 function setActiveNav(y,m){
@@ -392,8 +465,8 @@ function setActiveNav(y,m){
   if(btn) btn.classList.add('active');
 }
 
-function refreshNavDot(y,m){
-  const d=loadData(y,m);
+async function refreshNavDot(y,m){
+  const d=await loadData(y,m);
   const btn=document.getElementById(`nav_${y}_${m}`);
   if(btn) btn.classList.toggle('has-data', d.length>0);
 }
@@ -401,26 +474,28 @@ function refreshNavDot(y,m){
 // ──────────────────────────────────────────────
 //  VIEWS
 // ──────────────────────────────────────────────
-function setMonth(y,m){
+async function setMonth(y,m){
   state={view:'month',year:y,month:m};
   setActiveNav(y,m);
   document.getElementById('topSub').textContent=`${MONTHS[m]} ${y}`;
-  renderMonth();
+  showLoading();
+  await renderMonth();
 }
-function setView(v){
+async function setView(v){
   state.view=v;
   setActiveNav(-1,-1);
   document.getElementById('topSub').textContent='Visão Anual';
-  renderAnnual();
+  showLoading('Carregando visão anual...');
+  await renderAnnual();
 }
 
 // ──────────────────────────────────────────────
 //  RENDER MONTH
 // ──────────────────────────────────────────────
-function renderMonth(){
+async function renderMonth(){
   destroyCharts();
   const {year:y,month:m}=state;
-  const data=loadData(y,m);
+  const data=await loadData(y,m);
   const rec=data.filter(d=>d.tipo==='Receita').reduce((s,d)=>s+d.valor,0);
   const dep=data.filter(d=>d.tipo==='Despesa').reduce((s,d)=>s+d.valor,0);
   const saldo=rec-dep;
@@ -580,22 +655,24 @@ function buildLineChart(data){
 // ──────────────────────────────────────────────
 //  ANNUAL VIEW
 // ──────────────────────────────────────────────
-function renderAnnual(){
+async function renderAnnual(){
   destroyCharts();
   const content=document.getElementById('content');
 
-  const months2025=MONTHS.map((_,i)=>{
-    const d=loadData(2025,i);
+  const months2025=[];
+  for(let i=0;i<12;i++){
+    const d=await loadData(2025,i);
     const rec=d.filter(x=>x.tipo==='Receita').reduce((s,x)=>s+x.valor,0);
     const dep=d.filter(x=>x.tipo==='Despesa').reduce((s,x)=>s+x.valor,0);
-    return {name:MONTHS[i],rec,dep,saldo:rec-dep,count:d.length};
-  });
-  const months2026=MONTHS.map((_,i)=>{
-    const d=loadData(2026,i);
+    months2025.push({name:MONTHS[i],rec,dep,saldo:rec-dep,count:d.length});
+  }
+  const months2026=[];
+  for(let i=0;i<12;i++){
+    const d=await loadData(2026,i);
     const rec=d.filter(x=>x.tipo==='Receita').reduce((s,x)=>s+x.valor,0);
     const dep=d.filter(x=>x.tipo==='Despesa').reduce((s,x)=>s+x.valor,0);
-    return {name:MONTHS[i],rec,dep,saldo:rec-dep,count:d.length};
-  });
+    months2026.push({name:MONTHS[i],rec,dep,saldo:rec-dep,count:d.length});
+  }
 
   const totalRec25=months2025.reduce((s,m)=>s+m.rec,0);
   const totalDep25=months2025.reduce((s,m)=>s+m.dep,0);
@@ -668,9 +745,9 @@ function openModal(){
   document.getElementById('modal').classList.remove('hidden');
 }
 
-function openEdit(id){
+async function openEdit(id){
   const {year:y,month:m}=state;
-  const data=loadData(y,m);
+  const data=await loadData(y,m);
   const tx=data.find(d=>d.id===id);
   if(!tx) return;
   editId=id;
@@ -686,7 +763,7 @@ function openEdit(id){
 
 function closeModal(){ document.getElementById('modal').classList.add('hidden'); }
 
-function saveModal(){
+async function saveModal(){
   const desc=document.getElementById('f-desc').value.trim();
   const val=parseFloat(document.getElementById('f-val').value);
   const tipo=document.getElementById('f-tipo').value;
@@ -694,28 +771,30 @@ function saveModal(){
   const data=document.getElementById('f-data').value;
   if(!desc||isNaN(val)||val<=0||!data){ alert('Preencha todos os campos corretamente.'); return; }
   const {year:y,month:m}=state;
-  const list=loadData(y,m);
+  const list=await loadData(y,m);
   if(editId!=null){
     const idx=list.findIndex(d=>d.id===editId);
     if(idx>=0) list[idx]={...list[idx],desc,valor:val,tipo,cat,data};
   } else {
     list.push({id:getNextId(list),desc,valor:val,tipo,cat,data});
   }
-  saveData(y,m,list);
   closeModal();
-  refreshNavDot(y,m);
-  renderMonth();
+  showLoading('Salvando...');
+  await saveData(y,m,list);
+  await refreshNavDot(y,m);
+  await renderMonth();
   switchTab('hist');
 }
 
-function deleteTx(id){
+async function deleteTx(id){
   if(!confirm('Excluir esta transação?')) return;
   const {year:y,month:m}=state;
-  let list=loadData(y,m);
+  let list=await loadData(y,m);
   list=list.filter(d=>d.id!==id);
-  saveData(y,m,list);
-  refreshNavDot(y,m);
-  renderMonth();
+  showLoading('Removendo...');
+  await saveData(y,m,list);
+  await refreshNavDot(y,m);
+  await renderMonth();
   switchTab('hist');
 }
 
