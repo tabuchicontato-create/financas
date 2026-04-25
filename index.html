@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -326,7 +325,14 @@ async function renderMonth(){
   </div>
   <div class="panel"><div class="panel-title">Evolução do saldo</div><div class="chart-wrap" style="height:130px"><canvas id="chartLine"></canvas></div></div>
   <div class="panel">
-    <div class="panel-title"><span>Lançamentos — ${MONTHS[m]} ${y}</span></div>
+    <div class="panel-title">
+      <span>Lançamentos — ${MONTHS[m]} ${y}</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn-ghost" id="fAll" onclick="setFilter('all')" style="background:var(--blue);color:#fff;border-color:var(--blue)">Todos</button>
+        <button class="btn-ghost" id="fRec" onclick="setFilter('Receita')">Receitas</button>
+        <button class="btn-ghost" id="fDep" onclick="setFilter('Despesa')">Despesas</button>
+      </div>
+    </div>
     <div class="tbl-wrap">
       <table>
         <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th style="text-align:right">Valor</th><th style="text-align:right">Ações</th></tr></thead>
@@ -338,10 +344,30 @@ async function renderMonth(){
   buildCats(data);buildBarChart(rec,dep);buildLineChart(data);buildTable(data);
 }
 
-function buildTable(data){
+let _tableData=[];
+let _tableFilter='all';
+
+function setFilter(f){
+  _tableFilter=f;
+  ['all','Receita','Despesa'].forEach(k=>{
+    const id=k==='all'?'fAll':k==='Receita'?'fRec':'fDep';
+    const el=document.getElementById(id);
+    if(!el)return;
+    if(k===f){el.style.background='var(--blue)';el.style.color='#fff';el.style.borderColor='var(--blue)';}
+    else{el.style.background='';el.style.color='';el.style.borderColor='';}
+  });
+  renderTableRows();
+}
+
+function renderTableRows(){
   const body=document.getElementById('txBody');if(!body)return;
-  const sorted=[...data].sort((a,b)=>b.data.localeCompare(a.data));
+  const filtered=_tableFilter==='all'?_tableData:_tableData.filter(d=>d.tipo===_tableFilter);
+  const sorted=[...filtered].sort((a,b)=>b.data.localeCompare(a.data));
   body.innerHTML='';
+  if(!sorted.length){
+    body.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--txt3)">Nenhum lançamento encontrado.</td></tr>`;
+    return;
+  }
   sorted.forEach(tx=>{
     const tr=document.createElement('tr');
     tr.innerHTML=`
@@ -357,6 +383,12 @@ function buildTable(data){
       </td>`;
     body.appendChild(tr);
   });
+}
+
+function buildTable(data){
+  _tableData=data;
+  _tableFilter='all';
+  renderTableRows();
 }
 
 function buildCats(data){
