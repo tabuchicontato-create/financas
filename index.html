@@ -194,7 +194,7 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
       </div>
       <div>
         <div class="lbl">Categoria</div>
-        <select class="inp" id="f-cat" style="margin-bottom:0">
+        <select class="inp" id="f-cat" style="margin-bottom:0" onchange="toggleCatOutros(this.value)">
           <option>Alimentação</option>
           <option>Transporte</option>
           <option>Saúde/Beleza</option>
@@ -205,8 +205,19 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
           <option>Educação</option>
           <option>Trabalho/Renda</option>
           <option>Cartão</option>
-          <option>Outros</option>
+          <option value="__outros__">Outros (personalizado)</option>
         </select>
+      </div>
+    </div>
+    <div id="catOutrosWrap" style="display:none;margin-bottom:0">
+      <div class="lbl">Categoria personalizada</div>
+      <input class="inp" id="f-cat-outros" type="text" placeholder="Ex: Viagem, Investimento, Presente..."/>
+    </div>
+    <div>
+      <div class="lbl">Status</div>
+      <div style="display:flex;gap:8px;margin-bottom:0">
+        <button type="button" id="s-pago" onclick="setStatus('Pago')" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--green);background:var(--green);color:#000;font-weight:600;cursor:pointer">✅ Pago</button>
+        <button type="button" id="s-pendente" onclick="setStatus('Pendente')" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border2);background:transparent;color:var(--txt2);font-weight:600;cursor:pointer">⏳ Pendente</button>
       </div>
     </div>
     <div class="modal-actions">
@@ -377,6 +388,7 @@ function renderTableRows(){
       <td><span class="badge ${tx.tipo==='Receita'?'rec':'dep'}">${tx.tipo}</span></td>
       <td style="text-align:right;font-family:'DM Mono',monospace;color:${tx.tipo==='Receita'?'var(--green)':'var(--red)'};font-weight:600">${tx.tipo==='Receita'?'+':'-'}${fmt(tx.valor)}</td>
       <td style="text-align:right;white-space:nowrap">
+        <span onclick="toggleStatus(${tx.id})" style="cursor:pointer;font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px;background:${(tx.status||'Pago')==='Pago'?'#052e16':'#422006'};color:${(tx.status||'Pago')==='Pago'?'var(--green)':'var(--amber)'};" title="Clique para alternar">${(tx.status||'Pago')==='Pago'?'✅ Pago':'⏳ Pendente'}</span>
         <button class="btn-icon" onclick="openEdit(${tx.id})" title="Editar">✏️</button>
         <button class="btn-icon" onclick="duplicateTx(${tx.id})" title="Duplicar">📋</button>
         <button class="btn-icon del" onclick="deleteTx(${tx.id})" title="Excluir">🗑️</button>
@@ -449,6 +461,19 @@ async function renderAnnual(){
   document.getElementById('content').innerHTML=html;
 }
 
+let _status='Pago';
+function setStatus(s){
+  _status=s;
+  const pg=document.getElementById('s-pago');
+  const pe=document.getElementById('s-pendente');
+  if(!pg||!pe)return;
+  if(s==='Pago'){pg.style.background='var(--green)';pg.style.color='#000';pg.style.borderColor='var(--green)';pe.style.background='transparent';pe.style.color='var(--txt2)';pe.style.borderColor='var(--border2)';}
+  else{pe.style.background='var(--amber)';pe.style.color='#000';pe.style.borderColor='var(--amber)';pg.style.background='transparent';pg.style.color='var(--txt2)';pg.style.borderColor='var(--border2)';}
+}
+function toggleCatOutros(v){
+  const wrap=document.getElementById('catOutrosWrap');
+  if(wrap)wrap.style.display=v==='__outros__'?'block':'none';
+}
 function openModal(){
   editId=null;
   document.getElementById('modalTitle').textContent='Nova transação';
@@ -459,6 +484,10 @@ function openModal(){
   const today=new Date();
   const y=state.year||2026,m=state.month||0;
   document.getElementById('f-data').value=`${y}-${String(m+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  document.getElementById('f-cat').value='Alimentação';
+  document.getElementById('catOutrosWrap').style.display='none';
+  document.getElementById('f-cat-outros').value='';
+  _status='Pago';setStatus('Pago');
   document.getElementById('modal').classList.remove('hidden');
   setTimeout(()=>document.getElementById('f-desc').focus(),100);
 }
@@ -471,7 +500,17 @@ async function openEdit(id){
   document.getElementById('f-desc').value=tx.desc;
   document.getElementById('f-val').value=tx.valor;
   document.getElementById('f-tipo').value=tx.tipo;
-  document.getElementById('f-cat').value=tx.cat||'Outros';
+  const catVal=tx.cat||'Alimentação';
+  const knownCats=['Alimentação','Transporte','Saúde/Beleza','Casa','Lazer','Pet','Presentes/Família','Educação','Trabalho/Renda','Cartão'];
+  if(knownCats.includes(catVal)){
+    document.getElementById('f-cat').value=catVal;
+    document.getElementById('catOutrosWrap').style.display='none';
+  } else {
+    document.getElementById('f-cat').value='__outros__';
+    document.getElementById('catOutrosWrap').style.display='block';
+    document.getElementById('f-cat-outros').value=catVal;
+  }
+  _status=tx.status||'Pago';setStatus(_status);
   document.getElementById('f-data').value=tx.data;
   document.getElementById('modal').classList.remove('hidden');
 }
@@ -480,13 +519,14 @@ async function saveModal(){
   const desc=document.getElementById('f-desc').value.trim();
   const val=parseFloat(document.getElementById('f-val').value);
   const tipo=document.getElementById('f-tipo').value;
-  const cat=document.getElementById('f-cat').value;
+  const catSel=document.getElementById('f-cat').value;
+  const cat=catSel==='__outros__'?(document.getElementById('f-cat-outros').value.trim()||'Outros'):catSel;
   const dataVal=document.getElementById('f-data').value;
   if(!desc||isNaN(val)||val<=0||!dataVal){alert('Preencha todos os campos corretamente.');return;}
   const{year:y,month:m}=state;
   const list=await loadData(y,m);
-  if(editId!=null){const idx=list.findIndex(d=>d.id===editId);if(idx>=0)list[idx]={...list[idx],desc,valor:val,tipo,cat,data:dataVal};}
-  else list.push({id:getNextId(list),desc,valor:val,tipo,cat,data:dataVal});
+  if(editId!=null){const idx=list.findIndex(d=>d.id===editId);if(idx>=0)list[idx]={...list[idx],desc,valor:val,tipo,cat,status:_status,data:dataVal};}
+  else list.push({id:getNextId(list),desc,valor:val,tipo,cat,status:_status,data:dataVal});
   closeModal();showLoading('Salvando...');
   await saveData(y,m,list);
   await refreshNavDot(y,m);
@@ -501,6 +541,14 @@ async function duplicateTx(id){
   showLoading('Duplicando...');
   await saveData(y,m,list);
   await refreshNavDot(y,m);
+  await renderMonth();
+}
+async function toggleStatus(id){
+  const{year:y,month:m}=state;
+  const list=await loadData(y,m);
+  const idx=list.findIndex(d=>d.id===id);if(idx<0)return;
+  list[idx].status=list[idx].status==='Pendente'?'Pago':'Pendente';
+  await saveData(y,m,list);
   await renderMonth();
 }
 async function deleteTx(id){
