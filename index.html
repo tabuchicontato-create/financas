@@ -8,7 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 const firebaseConfig = {
   apiKey: "AIzaSyDshvH85-GgZ328YOUvxMFG9eG_fgUqe0o",
   authDomain: "financas-app-c1b01.firebaseapp.com",
@@ -28,6 +28,30 @@ window._fbLoad = async (y,m) => {
 window._fbSave = async (y,m,data) => {
   try { await setDoc(doc(db,'financas',`${y}_${m}`),{transactions:data}); }
   catch(e){ console.error(e); }
+};
+window._fbGetEconomias = async () => {
+  try {
+    const snap = await getDocs(collection(db,'economias'));
+    return snap.docs.map(d=>({id:d.id,...d.data()}));
+  } catch(e){ console.error(e); return []; }
+};
+window._fbAddEconomia = async (data) => {
+  try { return await addDoc(collection(db,'economias'),data); }
+  catch(e){ console.error(e); return null; }
+};
+window._fbUpdateEconomia = async (id, data) => {
+  try { await updateDoc(doc(db,'economias',id),data); }
+  catch(e){ console.error(e); }
+};
+window._fbDeleteEconomia = async (id) => {
+  try { await deleteDoc(doc(db,'economias',id)); }
+  catch(e){ console.error(e); }
+};
+window._fbGetEconomia = async (id) => {
+  try {
+    const snap = await getDoc(doc(db,'economias',id));
+    return snap.exists() ? {id:snap.id,...snap.data()} : null;
+  } catch(e){ console.error(e); return null; }
 };
 window._firebaseReady = true;
 </script>
@@ -499,8 +523,7 @@ function clearSaldoDia(){
 async function renderEconomias(){
   destroyCharts();
   document.getElementById('topSub').textContent='Economias';
-  const snap=await db.collection('economias').get().catch(()=>({docs:[]}));
-  const items=snap.docs.map(d=>({id:d.id,...d.data()}));
+  const items = await (window._fbGetEconomias ? window._fbGetEconomias() : Promise.resolve([]));
   const total=items.reduce((s,i)=>s+(i.guardado||0),0);
   const meta=items.reduce((s,i)=>s+(i.meta||0),0);
   let html=`
@@ -559,8 +582,8 @@ function openEconomiaModal(id){
 }
 async function openEconomiaModalById(id){
   _econId=id;
-  const snap=await db.collection('economias').doc(id).get();
-  const item=snap.data()||{};
+  const item = await (window._fbGetEconomia ? window._fbGetEconomia(id) : null);
+  if(!item) return;
   document.getElementById('econModalTitle').textContent='Editar economia';
   document.getElementById('econ-nome').value=item.nome||'';
   document.getElementById('econ-desc').value=item.desc||'';
@@ -581,9 +604,9 @@ async function saveEconomia(){
   if(!nome){alert('Digite um nome para a economia.');return;}
   try{
     if(_econId){
-      await db.collection('economias').doc(_econId).update({nome,desc,guardado,meta});
+      await window._fbUpdateEconomia(_econId,{nome,desc,guardado,meta});
     } else {
-      await db.collection('economias').add({nome,desc,guardado,meta,criadoEm:Date.now()});
+      await window._fbAddEconomia({nome,desc,guardado,meta,criadoEm:Date.now()});
     }
     closeEconModal();
     await renderEconomias();
@@ -593,7 +616,7 @@ async function saveEconomia(){
 }
 async function deleteEconomia(id){
   if(!confirm('Excluir esta economia?'))return;
-  await db.collection('economias').doc(id).delete();
+  await window._fbDeleteEconomia(id);
   await renderEconomias();
 }
 
